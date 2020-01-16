@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 
 namespace znet
 {
@@ -12,9 +13,9 @@ namespace znet
         {
             string inputFile = "";
             string outputFile = "";
-            for(int i = 0; i < args.Length; i++)
+            for (int i = 0; i < args.Length; i++)
             {
-                switch(args[i])
+                switch (args[i])
                 {
                     case "-i":
                         {
@@ -33,43 +34,32 @@ namespace znet
                         }
                 }
             }
-            if(inputFile == "")
+            if (inputFile == "")
             {
                 Console.WriteLine("Input file name is required");
                 return;
             }
             bool write = outputFile != "";
             Stream writeStream = null;
-            if(write)
+            if (write)
             {
                 writeStream = File.OpenWrite(outputFile);
             }
 
-            using (Stream input = File.OpenRead(inputFile))
+            //ICSharpCode.SharpZipLib.Zip.Compression.Streams.
+            InflaterInputBuffer buff = new InflaterInputBuffer(File.OpenRead(inputFile));
+            buff.Fill();
+            while (buff.Available != 0)
             {
-                if (input.ReadByte() != 0x78 || input.ReadByte() != 0xDA)
-                {
-                    throw new Exception("Incorrect header");
-                }                    
-                using (var deflateStream = new DeflateStream(input, CompressionMode.Decompress))
-                {
-                    int read = deflateStream.ReadByte();
-                    while (read != -1)
-                    {
-                        byte dataByte = (byte)read;
-                        if(write)
-                        {
-                            writeStream.WriteByte(dataByte);
-                            writeStream.Flush();
-                        }
-                        else
-                        {
-                            Console.Write(Encoding.ASCII.GetString(new byte[] { dataByte }));
-                        }
-                        read = deflateStream.ReadByte();
-                    }
-                }
+                int length = buff.RawLength;
+                writeStream.Write(buff.RawData, 0, length);
+                buff.Fill();
             }
+
+            //var inputStream = InflaterInputStream
+
+
+            
         }
     }
 }
